@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>AIMS Schedule Exporter</title>
+    <title>AIMS Schedule Builder</title>
     <style>
         body { 
             width: 450px; 
@@ -13,9 +13,46 @@
         h2 { 
             color: #0d3d19; 
             font-size: 16px; 
-            margin: 0 0 10px 0; 
-            padding-bottom: 8px; 
+            margin: 0; 
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
             border-bottom: 2px solid #0d3d19;
+        }
+        .header img {
+            max-width: 32px;
+            width: 100%;
+            height: auto;
+        }
+        .settings {
+            background: #fff;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .settings label {
+            font-size: 12px;
+            color: #333;
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        .settings select {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            background: #fafafa;
+            cursor: pointer;
+        }
+        .settings select:focus {
+            outline: none;
+            border-color: #0d3d19;
         }
         #status { 
             background: #fff; 
@@ -50,7 +87,7 @@
             font-size: 13px;
         }
         .course-badge {
-            background: #e8eaf6;
+            background: #e8faf0;
             color: #0d3d19;
             padding: 1px 8px;
             border-radius: 10px;
@@ -93,6 +130,24 @@
         .meeting-date {
             color: #888;
             font-size: 10px;
+        }
+        .event-preview {
+            margin-top: 6px;
+            padding: 4px 8px;
+            background: #e8faf0;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #0d3d19;
+        }
+        .event-preview .label {
+            font-weight: 600;
+            color: #555;
+            margin-right: 4px;
+        }
+        .event-preview .example {
+            font-family: monospace;
+            font-size: 11px;
+            color: #0d3d19;
         }
         .btn { 
             width: 100%; 
@@ -150,10 +205,21 @@
     </style>
 </head>
 <body>
-    <div style="display: flex; align-items: center; gap: 10px;">
-        <img src="images/icon.png" style="max-width: 48px; width: 100%; height: auto;">
-        <h2 style="margin: 0;">AIMS Schedule Exporter</h2>
+    <div class="header">
+        <img src="images/icon.png" alt="AIMS Schedule Exporter">
+        <h2>AIMS Schedule Builder</h2>
     </div>
+    
+    <div class="settings">
+        <label for="titleFormat">Calendar Event Title Format:</label>
+        <select id="titleFormat">
+            <option value="code_name">[Course Code] Course Name</option>
+            <option value="name_code">Course Name [Course Code]</option>
+            <option value="name_only">Course Name Only</option>
+            <option value="code_only">Course Code Only</option>
+        </select>
+    </div>
+    
     <div id="status">Loading schedule...</div>
     <div class="scrollable">
         <div id="courseList" class="course-list"></div>

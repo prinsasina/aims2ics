@@ -2,8 +2,13 @@ let extractedData = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     const downloadBtn = document.getElementById('downloadIcsBtn');
+    const titleFormat = document.getElementById('titleFormat');
     
     loadSchedule();
+
+    titleFormat.addEventListener('change', function() {
+        renderCourses(extractedData);
+    });
 
     downloadBtn.addEventListener('click', function() {
         if (extractedData && extractedData.length > 0) {
@@ -57,56 +62,97 @@ function loadSchedule() {
             }
             
             statusDiv.innerHTML = extractedData.length + ' courses found';
-
-            courseList.innerHTML = '';
-            extractedData.forEach((course) => {
-                const div = document.createElement('div');
-                div.className = 'course-item';
-                const credits = parseFloat(course.details['Credits']) || 0;
-                const crn = course.details['CRN'] || '';
-                const instructor = course.details['Assigned Instructor'] || 'TBA';
-                
-                let meetingsHtml = '';
-                if (course.meetings && course.meetings.length > 0) {
-                    course.meetings.forEach((meeting) => {
-                        const type = meeting.type || 'Class';
-                        const time = meeting.time || 'TBA';
-                        const days = meeting.days || 'TBA';
-                        const location = meeting.location || 'TBA';
-                        const dateRange = meeting.dateRange || '';
-                        
-                        meetingsHtml += 
-                            '<div class="meeting-detail">' +
-                            '<span class="meeting-type">' + type + '</span>' +
-                            '<span class="meeting-time">' + time + '</span>' +
-                            '<span class="meeting-days">' + days + '</span>' +
-                            '<span class="meeting-location">' + location + '</span>' +
-                            (dateRange ? '<span class="meeting-date">' + dateRange + '</span>' : '') +
-                            '</div>';
-                    });
-                } else {
-                    meetingsHtml = '<div class="meeting-detail" style="color:#999;">No meeting times found</div>';
-                }
-                
-                div.innerHTML = 
-                    '<div class="course-header">' +
-                    '<span class="title">' + course.title + '</span>' +
-                    '<span class="course-badge">' + crn + '</span>' +
-                    '</div>' +
-                    '<div style="font-size:11px;color:#666;margin:4px 0;">' +
-                    'Credits: ' + credits.toFixed(3) + ' | Instructor: ' + instructor + 
-                    '</div>' +
-                    '<div class="meetings-container">' + meetingsHtml + '</div>';
-                courseList.appendChild(div);
-            });
-
+            renderCourses(extractedData);
             downloadBtn.disabled = false;
         });
     });
 }
 
-function generateAndDownloadICS(courses) {
+function renderCourses(courses) {
+    const courseList = document.getElementById('courseList');
+    const format = document.getElementById('titleFormat').value;
     
+    if (!courses || courses.length === 0) {
+        courseList.innerHTML = '<div style="text-align:center;padding:20px;color:#999;">No courses to display</div>';
+        return;
+    }
+    
+    courseList.innerHTML = '';
+    courses.forEach((course) => {
+        const div = document.createElement('div');
+        div.className = 'course-item';
+        const credits = parseFloat(course.details['Credits']) || 0;
+        const crn = course.details['CRN'] || '';
+        const instructor = course.details['Assigned Instructor'] || 'TBA';
+        const courseCode = extractCourseCode(course.title);
+        let courseName = course.title;
+        courseName = courseName.replace(/ - [A-Z]{2,4} \d{4} - \w+$/, '');
+        courseName = courseName.replace(/ - \w+$/, '');
+        const displayTitle = generateEventTitle(courseName, courseCode, crn, format);
+        
+        let meetingsHtml = '';
+        if (course.meetings && course.meetings.length > 0) {
+            course.meetings.forEach((meeting) => {
+                const type = meeting.type || 'Class';
+                const time = meeting.time || 'TBA';
+                const days = meeting.days || 'TBA';
+                const location = meeting.location || 'TBA';
+                const dateRange = meeting.dateRange || '';
+                
+                meetingsHtml += 
+                    '<div class="meeting-detail">' +
+                    '<span class="meeting-type">' + type + '</span>' +
+                    '<span class="meeting-time">' + time + '</span>' +
+                    '<span class="meeting-days">' + days + '</span>' +
+                    '<span class="meeting-location">' + location + '</span>' +
+                    (dateRange ? '<span class="meeting-date">' + dateRange + '</span>' : '') +
+                    '</div>';
+            });
+        } else {
+            meetingsHtml = '<div class="meeting-detail" style="color:#999;">No meeting times found</div>';
+        }
+        
+        div.innerHTML = 
+            '<div class="course-header">' +
+            '<span class="title">' + displayTitle + '</span>' +
+            '<span class="course-badge">' + crn + '</span>' +
+            '</div>' +
+            '<div style="font-size:11px;color:#666;margin:4px 0;">' +
+            course.title + ' | ' +
+            'Credits: ' + credits.toFixed(3) + ' | ' +
+            'Instructor: ' + instructor +
+            '</div>' +
+            '<div class="meetings-container">' + meetingsHtml + '</div>';
+        courseList.appendChild(div);
+    });
+}
+
+function extractCourseCode(title) {
+    const match = title.match(/- ([A-Z]{2,4} \d{4}) -/);
+    if (match) return match[1];
+
+    const altMatch = title.match(/([A-Z]{2,4} \d{4})/);
+    if (altMatch) return altMatch[1];
+
+    return title;
+}
+
+function generateEventTitle(courseName, courseCode, crn, format) {
+    switch(format) {
+        case 'code_name':
+            return '[' + courseCode + '] ' + courseName;
+        case 'name_code':
+            return courseName + ' [' + courseCode + ']';
+        case 'name_only':
+            return courseName;
+        case 'code_only':
+            return courseCode;
+        default:
+            return '[' + courseCode + '] ' + courseName;
+    }
+}
+
+function generateAndDownloadICS(courses) {
     try {
         const icsContent = generateICS(courses);
         
@@ -154,7 +200,6 @@ function downloadWithDataURI(icsContent) {
         const dateStr = new Date().toISOString().slice(0,10);
         const filename = 'course_schedule_' + dateStr + '.ics';
         
-        // Encode the content
         const encoded = encodeURIComponent(icsContent);
         const dataUri = 'data:text/calendar;charset=utf-8,' + encoded;
         
@@ -185,11 +230,17 @@ function generateICS(courses) {
     ];
 
     let eventCount = 0;
+    const format = document.getElementById('titleFormat').value;
 
     courses.forEach(course => {
         const crn = course.details['CRN'] || '';
         const credits = parseFloat(course.details['Credits']) || 0;
         const instructor = course.details['Assigned Instructor'] || 'TBA';
+        const courseCode = extractCourseCode(course.title);
+        
+        let courseName = course.title;
+        courseName = courseName.replace(/ - [A-Z]{2,4} \d{4} - \w+$/, '');
+        courseName = courseName.replace(/ - \w+$/, '');
 
         if (!course.meetings || course.meetings.length === 0) {
             return;
@@ -231,7 +282,7 @@ function generateICS(courses) {
                 
                 const byDay = byDayMap[day];
 
-                const summary = cleanText(course.title + ' (' + crn + ')');
+                const summary = cleanText(generateEventTitle(courseName, courseCode, crn, format));
                 const location = cleanText(meeting.location || 'TBA');
                 const description = cleanText(
                     'Course: ' + course.title + '\n' +
@@ -322,18 +373,6 @@ function convertTo24h(timeStr) {
 function parseDays(daysStr) {
     if (!daysStr) return [];
     return daysStr.split('');
-}
-
-function getFirstDayOfWeek(startDate, day) {
-    const dayMap = {'M': 1, 'T': 2, 'W': 3, 'R': 4, 'F': 5, 'S': 6, 'U': 0};
-    const targetDay = dayMap[day];
-    if (targetDay === undefined) return null;
-    const date = new Date(startDate);
-    const currentDay = date.getDay();
-    let diff = targetDay - currentDay;
-    if (diff < 0) diff += 7;
-    date.setDate(date.getDate() + diff);
-    return date;
 }
 
 function formatDateForICal(date, time) {

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "AIMS Schedule Exporter",
+  "name": "AIMS Schedule Builder",
   "version": "1.1",
-  "description": "Extracts course/exam schedule from AIMS and downloads as an ICS file.",
+  "description": "Turn your AIMS timetable into a calendar in one click. Sync courses to Google Calendar, Apple Calendar, or Outlook",
   "permissions": [
     "activeTab",
     "downloads"
